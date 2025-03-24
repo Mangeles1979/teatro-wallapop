@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Material Teatro Wallapop</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-b from-gray-100 to-white min-h-screen text-gray-800 font-sans">
+
+  <header class="bg-white shadow-md p-6 mb-4">
+    <h1 class="text-3xl font-bold text-center text-blue-700">🎭 Material Teatro Wallapop</h1>
+    <p class="text-center text-gray-500 mt-1">Comparte y gestiona material teatral fácilmente</p>
+    <div class="flex justify-center mt-4 gap-4">
+      <button id="shareBtn" class="text-sm bg-blue-100 text-blue-700 px-4 py-2 rounded hover:bg-blue-200 transition">
+        🔗 Compartir aplicación
+      </button>
+      <button id="downloadBtn" class="text-sm bg-green-100 text-green-700 px-4 py-2 rounded hover:bg-green-200 transition">
+        💾 Descargar código HTML
+      </button>
+    </div>
+  </header>
+
+  <main class="px-4 max-w-6xl mx-auto grid gap-6 lg:grid-cols-[1fr_3fr]">
+    <aside class="bg-white p-4 rounded-xl shadow-md h-fit">
+      <h2 class="text-lg font-semibold mb-2 text-blue-600">📋 Lista de materiales</h2>
+      <ul id="productLinks" class="space-y-2 text-sm text-blue-700 underline"></ul>
+    </aside>
+
+    <div>
+      <input type="text" id="searchInput" placeholder="🔍 Buscar materiales..." class="w-full p-3 mb-6 border border-gray-300 rounded-xl shadow-sm">
+
+      <!-- FORMULARIO -->
+      <section class="bg-white p-6 rounded-xl shadow-md mb-10">
+        <h2 class="text-2xl font-semibold text-blue-600 mb-4">📌 Publicar un material</h2>
+        <form id="productForm" class="grid gap-4 md:grid-cols-2">
+          <input id="title" type="text" placeholder="🎬 Título" required class="p-3 border rounded-lg shadow-sm">
+          <input id="owner" type="text" placeholder="👤 Propietario" required class="p-3 border rounded-lg shadow-sm">
+          <input id="location" type="text" placeholder="📍 Ubicación" required class="p-3 border rounded-lg shadow-sm">
+          <select id="category" required class="p-3 border rounded-lg shadow-sm">
+            <option value="">🏷️ Categoría</option>
+            <option>Vestuario</option><option>Escenografía</option><option>Utilería</option><option>Iluminación</option><option>Otros</option>
+          </select>
+
+          <!-- 🔄 Mejora: palabra "Disponibilidad:" -->
+          <div>
+            <label for="available" class="block text-sm font-semibold mb-1">Disponibilidad:</label>
+            <select id="available" class="p-3 border rounded-lg shadow-sm w-full">
+              <option value="sí">Sí</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+
+          <input id="notAvailableDate" type="date" class="p-3 border rounded-lg shadow-sm hidden">
+          <input id="holder" type="text" placeholder="🙋 Ocupado por..." class="p-3 border rounded-lg shadow-sm hidden">
+          <textarea id="description" placeholder="📝 Descripción" required class="p-3 border rounded-lg shadow-sm md:col-span-2"></textarea>
+          <div class="md:col-span-2">
+            <label class="block mb-1">📷 Imagen del material</label>
+            <input type="file" id="imageInput" accept="image/*" class="p-2 border rounded-lg w-full" />
+          </div>
+          <button type="submit" class="md:col-span-2 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition">
+            ➕ Guardar material
+          </button>
+        </form>
+      </section>
+
+      <!-- Lista de productos -->
+      <section>
+        <h2 class="text-2xl font-semibold text-blue-600 mb-4">📦 Material publicado</h2>
+        <div id="productList" class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="text-center text-sm text-gray-500 py-6 mt-10">
+    Hecho con 💻 para fines educativos. Funciona 100% sin conexión ni servidor.
+  </footer>
+
+  <script>
+    const form = document.getElementById('productForm');
+    const productList = document.getElementById('productList');
+    const productLinks = document.getElementById('productLinks');
+    const searchInput = document.getElementById('searchInput');
+    const shareBtn = document.getElementById('shareBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const availableSelect = document.getElementById('available');
+    const notAvailableDate = document.getElementById('notAvailableDate');
+    const holderInput = document.getElementById('holder');
+
+    let products = JSON.parse(localStorage.getItem('products')) || [];
+    let editingId = null;
+
+    availableSelect.addEventListener('change', () => {
+      const show = availableSelect.value === 'no';
+      notAvailableDate.classList.toggle('hidden', !show);
+      holderInput.classList.toggle('hidden', !show);
+    });
+
+    function updateLocalStorage() {
+      localStorage.setItem('products', JSON.stringify(products));
+    }
+
+    function updateProductLinks() {
+      productLinks.innerHTML = '';
+      products.forEach(p => {
+        const li = document.createElement('li');
+        li.innerHTML = `<a href="#${p.id}" class="hover:text-blue-900">${p.title}</a>`;
+        productLinks.appendChild(li);
+      });
+    }
+
+    function createCard(p) {
+      const card = document.createElement('div');
+      card.id = p.id;
+      card.className = 'bg-white rounded-xl shadow-md p-4 flex flex-col scroll-mt-24';
+      card.innerHTML = `
+        <img src="${p.imageDataURL}" alt="${p.title}" class="w-full h-auto object-cover rounded mb-2 max-h-64">
+        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full mb-2">${p.category}</span>
+        <h3 class="text-lg font-bold text-blue-700">${p.title}</h3>
+        <p class="text-sm text-gray-700"><strong>Propietario:</strong> ${p.owner}</p>
+        <p class="text-sm"><strong>Ubicación:</strong> ${p.location}</p>
+        <p class="text-sm"><strong>Disponible:</strong> ${p.available}</p>
+        ${p.available === 'no' ? `<p class="text-sm"><strong>Fecha:</strong> ${p.date || 'No indicada'}</p>` : ''}
+        ${p.available === 'no' && p.holder ? `<p class="text-sm"><strong>Ocupado por:</strong> ${p.holder}</p>` : ''}
+        <p class="text-sm mt-1 text-gray-600">${p.description}</p>
+        <div class="flex gap-2 mt-3 self-end">
+          <button class="editBtn bg-yellow-400 text-white px-3 py-1 rounded">✏️</button>
+          <button class="deleteBtn bg-red-500 text-white px-3 py-1 rounded">🗑️</button>
+        </div>
+      `;
+
+      card.querySelector('.deleteBtn').onclick = () => {
+        products = products.filter(x => x.id !== p.id);
+        updateLocalStorage();
+        renderProducts();
+      };
+
+      card.querySelector('.editBtn').onclick = () => {
+        ['title','owner','location','category','available','description','notAvailableDate','holder'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = p[id] || '';
+        });
+        notAvailableDate.classList.toggle('hidden', p.available !== 'no');
+        holderInput.classList.toggle('hidden', p.available !== 'no');
+        editingId = p.id;
+        form.scrollIntoView({ behavior: 'smooth' });
+      };
+
+      return card;
+    }
+
+    function renderProducts() {
+      productList.innerHTML = '';
+      products.forEach(p => productList.appendChild(createCard(p)));
+      updateProductLinks();
+    }
+
+    form.onsubmit = e => {
+      e.preventDefault();
+      const getVal = id => document.getElementById(id).value;
+      const [title, owner, location, category, available, date, holder, description] =
+        ['title','owner','location','category','available','notAvailableDate','holder','description'].map(getVal);
+      const imageFile = document.getElementById('imageInput').files[0];
+
+      const save = (imageDataURL) => {
+        if (editingId) {
+          const index = products.findIndex(p => p.id === editingId);
+          products[index] = { ...products[index], title, owner, location, category, available, date, holder, description, imageDataURL: imageDataURL || products[index].imageDataURL };
+          editingId = null;
+        } else {
+          const id = 'prod_' + Date.now();
+          products.unshift({ id, title, owner, location, category, available, date, holder, description, imageDataURL });
+        }
+        updateLocalStorage();
+        form.reset();
+        notAvailableDate.classList.add('hidden');
+        holderInput.classList.add('hidden');
+        renderProducts();
+      };
+
+      if (editingId && !imageFile) save(null);
+      else if (imageFile) {
+        const reader = new FileReader();
+        reader.onload = e => save(e.target.result);
+        reader.readAsDataURL(imageFile);
+      } else {
+        alert("Selecciona una imagen");
+      }
+    };
+
+    searchInput.oninput = () => {
+      const q = searchInput.value.toLowerCase();
+      productList.innerHTML = '';
+      products.forEach(p => {
+        const text = `${p.title} ${p.owner} ${p.location} ${p.description} ${p.holder} ${p.category}`.toLowerCase();
+        if (text.includes(q)) productList.appendChild(createCard(p));
+      });
+    };
+
+    shareBtn.onclick = () => {
+      const url = window.location.href;
+      navigator.clipboard.writeText(url).then(() => {
+        alert('📎 Enlace de la aplicación copiado al portapapeles:\n' + url);
+      });
+    };
+
+    // Descargar el código HTML actual como archivo
+    downloadBtn.onclick = () => {
+      const blob = new Blob([document.documentElement.outerHTML], { type: 'text/html' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'material-teatro-wallapop.html';
+      a.click();
+    };
+
+    renderProducts();
+  </script>
+</body>
+</html>
